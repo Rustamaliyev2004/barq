@@ -12,27 +12,10 @@ PLANTS = [
 ]
 
 DE_PEAK = {"solar": 38000.0, "wind": 46000.0}
-UZ_FLEET_MW = 8000      # installed solar + wind, Uzbekistan
+UZ_FLEET_MW = 5600      # installed solar + wind, Uzbekistan
 UZ_SYSTEM   = 11000     # typical Uzbek peak demand, MW
 DE_SYSTEM   = 60000     # typical German peak demand, MW
 FEATURES = ["shortwave_radiation","temperature_2m","cloud_cover","wind_speed_100m","hour","month","doy"]
-
-# ---------- login ----------
-if "auth" not in st.session_state:
-    st.session_state.auth = False
-
-if not st.session_state.auth:
-    st.title("barq")
-    st.caption("energy solutions")
-    u = st.text_input("Username")
-    p = st.text_input("Password", type="password")
-    if st.button("Sign in"):
-        if u == "demo" and p == "barq2026":
-            st.session_state.auth = True
-            st.rerun()
-        else:
-            st.error("Invalid credentials")
-    st.stop()
 
 # ---------- app ----------
 @st.cache_resource
