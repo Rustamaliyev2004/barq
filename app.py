@@ -58,16 +58,18 @@ for pl in PLANTS:
     cf["residual_load"] = residual
     risk = models["curtail"].predict_proba(cf)[:, 1]
 
+
     rows.append({
         "Plant": pl["name"], "Type": pl["type"], "Capacity MW": pl["mw"],
         "Next 24h MWh": int(curves[pl["name"]][:24].sum()),
         "Peak MW": round(float(mwh[:24].max()), 1),
-        "Curtailment risk": f"{100*float(risk[:24].max()):.0f}%",
-    })
+        "Curtailment risk 48h": f"{100*float(risk.max()):.1f}%",    })
 
 st.subheader("48-hour outlook")
 st.dataframe(pd.DataFrame(rows), use_container_width=True, hide_index=True)
-
+st.caption("Curtailment risk reflects national supply-demand balance. "
+           "August risk is low: summer cooling demand absorbs midday solar. "
+           "Local transmission constraints are not yet modelled — this needs operator network data.")
 st.subheader("Forecast output by plant (MW)")
 st.line_chart(pd.DataFrame(curves))
 
