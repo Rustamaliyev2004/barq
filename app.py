@@ -30,7 +30,9 @@ def forecast_all():
         "latitude": lats, "longitude": lons,
         "hourly": "shortwave_radiation,temperature_2m,cloud_cover,wind_speed_100m",
         "forecast_days": 2, "timezone": "Asia/Tashkent"}, timeout=30)
-    r.raise_for_status()
+    if r.status_code != 200:
+        raise RuntimeError(f"HTTP {r.status_code}: {r.text[:200]}")
+    js = r.json()
     js = r.json()
     if isinstance(js, dict):
         js = [js]
@@ -52,7 +54,7 @@ try:
     wx_all = forecast_all()
 except Exception as e:
     st.error("Weather service is temporarily unavailable. Please refresh in a minute.")
-    st.caption(f"({type(e).__name__})")
+    st.caption(f"({e})")
     st.stop()
 
 rows, curves = [], {}
