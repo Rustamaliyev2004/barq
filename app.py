@@ -22,29 +22,41 @@ FEATURES = ["shortwave_radiation","temperature_2m","cloud_cover","wind_speed_100
 def get_models():
     return pickle.load(open("data/models.pkl", "rb"))
 
-@st.cache_data(ttl=3600)
-def forecast(lat, lon):
+@st.cache_data(ttl=1800, show_spinner="Fetching weather forecast…")
+def forecast_all():
+    lats = ",".join(str(p["lat"]) for p in PLANTS)
+    lons = ",".join(str(p["lon"]) for p in PLANTS)
     r = requests.get("https://api.open-meteo.com/v1/forecast", params={
-        "latitude": lat, "longitude": lon,
+        "latitude": lats, "longitude": lons,
         "hourly": "shortwave_radiation,temperature_2m,cloud_cover,wind_speed_100m",
         "forecast_days": 2, "timezone": "Asia/Tashkent"}, timeout=30)
     r.raise_for_status()
-    d = pd.DataFrame(r.json()["hourly"])
-    d["ts"] = pd.to_datetime(d.pop("time"))
-    d = d.set_index("ts")
-    d["hour"] = d.index.hour
-    d["month"] = d.index.month
-    d["doy"] = d.index.dayofyear
-    return d
+    js = r.json()
+    if isinstance(js, dict):
+        js = [js]
+    out = []
+    for block in js:
+        d = pd.DataFrame(block["hourly"])
+        d["ts"] = pd.to_datetime(d.pop("time"))
+        d = d.set_index("ts")
+        d["hour"], d["month"], d["doy"] = d.index.hour, d.index.month, d.index.dayofyear
+        out.append(d)
+    return out
 
 models = get_models()
 
 st.title("barq")
 st.caption("Output and curtailment risk forecasting for Uzbekistan's renewable fleet")
 
+try:
+    wx_all = forecast_all()
+except Exception as e:
+    st.error("Weather service is temporarily unavailable. Please refresh in a minute.")
+    st.caption(f"({type(e).__name__})")
+    st.stop()
+
 rows, curves = [], {}
-for pl in PLANTS:
-    wx = forecast(pl["lat"], pl["lon"])
+for pl, wx in zip(PLANTS, wx_all):
     de = models[pl["type"]].predict(wx[FEATURES])
     mwh = np.clip(de / DE_PEAK[pl["type"]], 0, 1) * pl["mw"]
     curves[pl["name"]] = pd.Series(mwh, index=wx.index)
