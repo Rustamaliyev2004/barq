@@ -1,4 +1,4 @@
-import streamlit as st, pandas as pd, numpy as np, requests, pickle, datetime
+import streamlit as st, pandas as pd, numpy as np, requests, pickle, datetime, json, os
 
 st.set_page_config(page_title="barq", layout="wide")
 
@@ -22,17 +22,31 @@ FEATURES = ["shortwave_radiation","temperature_2m","cloud_cover","wind_speed_100
 def get_models():
     return pickle.load(open("data/models.pkl", "rb"))
 
+CACHE_PATH = "data/last_forecast.json"
+
 @st.cache_data(ttl=1800, show_spinner="Fetching weather forecast…")
 def forecast_all():
     lats = ",".join(str(p["lat"]) for p in PLANTS)
     lons = ",".join(str(p["lon"]) for p in PLANTS)
-    r = requests.get("https://api.open-meteo.com/v1/forecast", params={
-        "latitude": lats, "longitude": lons,
-        "hourly": "shortwave_radiation,temperature_2m,cloud_cover,wind_speed_100m",
-        "forecast_days": 2, "timezone": "Asia/Tashkent"}, timeout=30)
-    if r.status_code != 200:
-        raise RuntimeError(f"HTTP {r.status_code}: {r.text[:200]}")
-    js = r.json()
+    stale = False
+    try:
+        r = requests.get("https://api.open-meteo.com/v1/forecast", params={
+            "latitude": lats, "longitude": lons,
+            "hourly": "shortwave_radiation,temperature_2m,cloud_cover,wind_speed_100m",
+            "forecast_days": 2, "timezone": "Asia/Tashkent"}, timeout=30)
+        if r.status_code != 200:
+            raise RuntimeError(f"HTTP {r.status_code}")
+        js = r.json()
+        with open(CACHE_PATH, "w") as f:
+            json.dump({"fetched": datetime.datetime.now().isoformat(), "data": js}, f)
+    except Exception:
+        if not os.path.exists(CACHE_PATH):
+            raise
+        with open(CACHE_PATH) as f:
+            saved = json.load(f)
+        js = saved["data"]
+        stale = saved["fetched"]
+
     if isinstance(js, dict):
         js = [js]
     out = []
@@ -42,7 +56,7 @@ def forecast_all():
         d = d.set_index("ts")
         d["hour"], d["month"], d["doy"] = d.index.hour, d.index.month, d.index.dayofyear
         out.append(d)
-    return out
+    return out, stale
 
 models = get_models()
 
@@ -50,11 +64,14 @@ st.title("barq")
 st.caption("Output and curtailment risk forecasting for Uzbekistan's renewable fleet")
 
 try:
-    wx_all = forecast_all()
+    wx_all, stale = forecast_all()
 except Exception as e:
     st.error("Weather service is temporarily unavailable. Please refresh in a minute.")
     st.caption(f"({e})")
     st.stop()
+
+if stale:
+    st.warning(f"Live weather unavailable (API limit). Showing last forecast fetched {stale[:16]}.")
 
 rows, curves = [], {}
 for pl, wx in zip(PLANTS, wx_all):
