@@ -33,7 +33,6 @@ def forecast_all():
     if r.status_code != 200:
         raise RuntimeError(f"HTTP {r.status_code}: {r.text[:200]}")
     js = r.json()
-    js = r.json()
     if isinstance(js, dict):
         js = [js]
     out = []
