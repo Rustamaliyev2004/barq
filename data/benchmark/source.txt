@@ -1,0 +1,2 @@
+https://raw.githubusercontent.com/akylasstrat/df-forecast-comb/0c7b0c48141c5cdcfbc9711c84d282f93d59b753/data/gefcom2014-solar.csv
+sha256 1545d0f31fc880ceb15346417c9ef0571a3402fbaaea0efe1b04bded6a0606d0

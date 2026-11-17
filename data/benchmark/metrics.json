@@ -1,0 +1,220 @@
+{
+  "version": 2,
+  "input_sha256": "1545d0f31fc880ceb15346417c9ef0571a3402fbaaea0efe1b04bded6a0606d0",
+  "train_end": "2013-06-30",
+  "selection_end": "2013-08-31",
+  "calibration_end": "2013-09-30",
+  "test_start": "2013-10-01",
+  "test_end": "2014-07-01 00:00",
+  "issue_time_source": "reconstructed_GEFCom_protocol",
+  "evaluation_status": "Exploratory revision after inspecting v1 on the same test period",
+  "sites": [
+    {
+      "mae": 0.029970074107969303,
+      "rmse": 0.07015366990540838,
+      "coverage_80": 0.78998778998779,
+      "mean_interval_width": 0.11055926653458835,
+      "mean_pinball": 0.010909401944690976,
+      "zone": 1,
+      "selected_model": "boosted_median",
+      "selection_mae": {
+        "boosted_median": 0.037130948379927,
+        "extra_trees": 0.038181674794280654
+      },
+      "test_hours": 6552,
+      "curve_mae": 0.059437140480883166,
+      "curve_pinball": 0.018464597565071225,
+      "climatology_mae": 0.05414992192391636,
+      "persistence_mae": 0.066921501759768,
+      "mae_skill": 0.49576857390020956,
+      "mae_skill_95pct": [
+        0.4341468942277132,
+        0.5502849325441805
+      ],
+      "daylight": {
+        "mae": 0.05329459735798456,
+        "rmse": 0.09355725357602197,
+        "coverage_80": 0.6786102062975027,
+        "mean_interval_width": 0.19658007538327468,
+        "mean_pinball": 0.019397667938338466
+      },
+      "forecast_daylight_hours": 3684,
+      "calibration_bins": [
+        {
+          "low": -3.8051584428892154e-07,
+          "high": 6.372448415571108e-05,
+          "count": 401
+        },
+        {
+          "low": -0.02137600495048727,
+          "high": 0.033339278295371165,
+          "count": 61
+        },
+        {
+          "low": -0.07524325160628473,
+          "high": 0.13282002607285137,
+          "count": 54
+        },
+        {
+          "low": -0.11126996451472901,
+          "high": 0.24231128450651448,
+          "count": 74
+        },
+        {
+          "low": -0.2108384121323973,
+          "high": 0.08446445791072106,
+          "count": 85
+        },
+        {
+          "low": -0.1723813933995749,
+          "high": 0.032774358740107326,
+          "count": 45
+        }
+      ],
+      "schedule_mismatch_per_mw": {
+        "median": 196.36392555541488,
+        "lower": 397.9740051684832,
+        "radiation_curve": 389.4321444307465,
+        "persistence_48h": 438.46967953
+      }
+    },
+    {
+      "mae": 0.03708907517664784,
+      "rmse": 0.08294463867633846,
+      "coverage_80": 0.7782356532356532,
+      "mean_interval_width": 0.1115337461554588,
+      "mean_pinball": 0.013165637403633938,
+      "zone": 2,
+      "selected_model": "extra_trees",
+      "selection_mae": {
+        "boosted_median": 0.040414786107867834,
+        "extra_trees": 0.04015750770336187
+      },
+      "test_hours": 6552,
+      "curve_mae": 0.06257350849969312,
+      "curve_pinball": 0.019248837584366293,
+      "climatology_mae": 0.06164604852266484,
+      "persistence_mae": 0.07285232936477412,
+      "mae_skill": 0.4072719259967701,
+      "mae_skill_95pct": [
+        0.35565981550311,
+        0.457611703676923
+      ],
+      "daylight": {
+        "mae": 0.0658518008173001,
+        "rmse": 0.11052539204201497,
+        "coverage_80": 0.6517615176151762,
+        "mean_interval_width": 0.198039140440441,
+        "mean_pinball": 0.0233753121662508
+      },
+      "forecast_daylight_hours": 3690,
+      "calibration_bins": [
+        {
+          "low": -1.7839904887054643e-05,
+          "high": 0.0,
+          "count": 379
+        },
+        {
+          "low": -0.028836789457676364,
+          "high": 0.022596838555532406,
+          "count": 56
+        },
+        {
+          "low": -0.09389393683457334,
+          "high": 0.07319023781311887,
+          "count": 50
+        },
+        {
+          "low": -0.11747304436910248,
+          "high": 0.1687243807203402,
+          "count": 72
+        },
+        {
+          "low": -0.2668781478133575,
+          "high": 0.08900140944978653,
+          "count": 113
+        },
+        {
+          "low": -0.09755180660518452,
+          "high": 0.045635872221633816,
+          "count": 50
+        }
+      ],
+      "schedule_mismatch_per_mw": {
+        "median": 243.00762055739665,
+        "lower": 494.1651588989488,
+        "radiation_curve": 409.9816276899893,
+        "persistence_48h": 477.328461998
+      }
+    },
+    {
+      "mae": 0.036257044634590174,
+      "rmse": 0.07839392105851443,
+      "coverage_80": 0.7857142857142857,
+      "mean_interval_width": 0.10897074082323056,
+      "mean_pinball": 0.012835804254019187,
+      "zone": 3,
+      "selected_model": "boosted_median",
+      "selection_mae": {
+        "boosted_median": 0.04474668289552787,
+        "extra_trees": 0.04621795478417025
+      },
+      "test_hours": 6552,
+      "curve_mae": 0.05558814649803845,
+      "curve_pinball": 0.01766176456943983,
+      "climatology_mae": 0.06279683112026863,
+      "persistence_mae": 0.07706444978632479,
+      "mae_skill": 0.34775582711919373,
+      "mae_skill_95pct": [
+        0.3021880014115766,
+        0.3905476478434687
+      ],
+      "daylight": {
+        "mae": 0.06437017503634734,
+        "rmse": 0.1044614575836943,
+        "coverage_80": 0.6710027100271003,
+        "mean_interval_width": 0.19342969489399262,
+        "mean_pinball": 0.02278593453735066
+      },
+      "forecast_daylight_hours": 3690,
+      "calibration_bins": [
+        {
+          "low": -8.230040071782393e-07,
+          "high": 7.686356389439205e-05,
+          "count": 390
+        },
+        {
+          "low": -0.02775135271248034,
+          "high": 0.04096150666024274,
+          "count": 40
+        },
+        {
+          "low": -0.0779405281986639,
+          "high": 0.16354425752769503,
+          "count": 59
+        },
+        {
+          "low": -0.048869915612477464,
+          "high": 0.2165227312649214,
+          "count": 73
+        },
+        {
+          "low": -0.1995902170783993,
+          "high": 0.14819356708470988,
+          "count": 101
+        },
+        {
+          "low": -0.08037457291176098,
+          "high": 0.06045322971912136,
+          "count": 57
+        }
+      ],
+      "schedule_mismatch_per_mw": {
+        "median": 237.5561564458348,
+        "lower": 347.07111617859175,
+        "radiation_curve": 364.21353585514794,
+        "persistence_48h": 504.92627500000003
+      }
+    }
+  ]
+}
