@@ -1,108 +1,30 @@
-# barq
+# Barq
 
-**48-hour output and curtailment-risk forecasting for Uzbekistan's utility-scale solar and wind fleet.**
+A renewable generation forecasting research prototype for plant operations teams.
 
-Live demo: [barq-energy.streamlit.app](https://barq-energy.streamlit.app)
+The app replays forecasts and actual generation for three public GEFCom2014 solar farms. It selects between gradient boosting and extra trees, compares three baselines, shows experimental uncertainty ranges, and measures energy both below and above alternative schedules. The ranges currently miss their daylight coverage target.
 
----
+## Run
 
-## The problem
+    pip install -r requirements.txt
+    streamlit run app.py
 
-Uzbekistan has built 5.6 GW of utility-scale solar and wind across 21 plants. Plant operators know
-what the weather will do. What they cannot see is how much of their output the grid will actually
-accept — and curtailed energy is unpaid energy.
+The app loads the included benchmark results and works without a weather API. To reproduce model training, obtain the exact public CSV specified in `data/benchmark/source.txt`, save it as `data/benchmark/solar.csv`, and run:
 
-barq forecasts both, 48 hours ahead, per plant:
+    python src/benchmark_solar_v2.py
 
-1. **How much a plant will generate**, hour by hour.
-2. **How likely that output is to be curtailed**, given the state of the system.
+Training ends June 2013. July–August 2013 selects the point model. September 2013 calibrates ranges. October 2013–June 2014 is the evaluation period, already inspected during development. The point models use supplied numerical weather forecasts and calendar features. Accumulated radiation is differenced within daily forecast blocks. No future actual power is used as an input. The original source contains one normalized power value of 1.00355, which is retained in evaluation.
 
-## Scope of this demo
+This is our chronological research replay, separate from the original GEFCom official competition protocol. Provenance, raw file hash and exact download revision are recorded. Confirm the dataset reuse terms before commercial distribution. The public data is an external benchmark. Uzbek site performance and financial impact require local evaluation. Calibration coverage is empirical, and temporal dependence or distribution changes can affect future coverage.
 
-The dashboard currently runs the **six largest plants** — Sherabad, Nur Bukhara, Samarkand and
-Nur Navoi Solar, plus Zarafshan and Bash Wind — which together account for just over 2 GW.
-The models are fleet-agnostic: extending to all 21 plants is a matter of adding coordinates and
-nameplate capacity, not retraining. Plants are added as verified capacity and location data is
-confirmed.
+## Earlier Barq work
 
-## How it works
+The legacy scripts `src/train.py`, `src/build_dataset.py` and `src/get_weather.py` remain available for tracing the earlier experiment. They used German aggregate generation, historical reanalysis weather and a negative-price classification target. Those results evaluate that historical setup. They cannot establish issue-time forecast skill, Uzbek plant performance or physical curtailment detection. The new app uses the benchmark evidence described above.
 
-Three gradient-boosting models, all trained on German grid data and applied to Uzbek plants
-through a residual-load scaling.
+## Contest preparation
 
-| Model | Type | Target |
-|---|---|---|
-| Solar | `HistGradientBoostingRegressor` | Hourly solar generation |
-| Wind | `HistGradientBoostingRegressor` | Hourly wind generation |
-| Curtailment | `HistGradientBoostingClassifier` | Probability of a curtailment hour |
+See `../research_notes/Barq forecasting competition evidence/` for source research. The team must author its substantive Global Sustainability Challenge submission and disclose significant AI assistance, following the organizer's FAQ. A proposed pilot should specify a forecast issue time, strong operational baseline, metering and curtailment flags, acceptable uncertainty width, and a prospective evaluation period.
 
-**Features:** shortwave radiation, 2 m temperature, cloud cover, 100 m wind speed, hour, month,
-day of year. The curtailment classifier adds residual load — demand minus modelled renewable
-output — which is what actually drives curtailment decisions.
+## Current evaluation limits
 
-**Weather source:** [Open-Meteo](https://open-meteo.com) — ERA5 archive for training, forecast API
-for the live 48-hour outlook.
-
-## Why German data
-
-Uzbekistan does not publish hourly plant-level generation or curtailment actuals. Germany does,
-through ENTSO-E and SMARD, at scale and with a comparable renewable share.
-
-Training on Germany means the accuracy figures below are **measured against published actuals**,
-not asserted. The trade-off is that Uzbek output is scaled from a German-trained model pending
-local calibration — which is exactly what a pilot with one operator would resolve.
-
-## Validation
-
-Trained on 2020–2023. Tested on **2024, a year the model never saw.**
-
-| Metric | Result | vs. naive baseline |
-|---|---|---|
-| Solar forecast error | 3.7% of peak | 79% better |
-| Wind forecast error | 7.4% of peak | 57% better |
-| Curtailment detection | ROC AUC 0.973 | catches 72% of events |
-
-Reproduce it yourself — `src/train.py` prints every number above, including the full
-precision/recall sweep across alert thresholds.
-
-## Repository
-
-```
-app.py                  Streamlit dashboard — the live MVP
-src/get_weather.py      Pulls ERA5 hourly weather for the German fleet
-src/build_dataset.py    Joins weather with ENTSO-E generation, load and price data
-src/train.py            Trains all three models, prints validation, writes models.pkl
-data/models.pkl         Trained models used by the app
-requirements.txt        Dependencies
-```
-
-Raw ENTSO-E CSVs and the built parquet files are gitignored for size. Regenerate them by running
-`src/get_weather.py` then `src/build_dataset.py`.
-
-## Running locally
-
-```bash
-pip install -r requirements.txt
-streamlit run app.py
-```
-
-To retrain from scratch:
-
-```bash
-python src/get_weather.py      # fetches ERA5 archive, 2020-2024
-python src/build_dataset.py    # builds data/training.parquet
-python src/train.py            # trains and validates, writes data/models.pkl
-```
-
-## Status
-
-Working demo. Uzbek plant coordinates and capacities are public data; output is scaled from a
-German-trained model. The next step is calibration against real generation data from one Uzbek
-operator — at which point the accuracy figures become Uzbek figures rather than German ones.
-
-## Team
-
-Built by a five-person team at New Uzbekistan University, with plant and grid domain input from
-Toshkent Metropoliteni and CitiFuel.
-
-Contact: d.rustamaliyev@newuu.uz
+Version 2 follows observation of version 1 on the same test dates. Results are exploratory. Narrow ranges miss the 80% daylight coverage target, as displayed in the app. Forecast issue times are reconstructed from the competition protocol. The CSV has no provider delivery log. The installations are small benchmark arrays. Uzbek and utility-scale performance require independent evaluation. This version improves solar evaluation and decision replay. Wind retraining is pending.

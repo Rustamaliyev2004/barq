@@ -1,0 +1,17 @@
+{
+  "date": "2026-11-17",
+  "rows_checked": 19656,
+  "sites": 3,
+  "checks": [
+    "no missing or duplicate predictions",
+    "24 leads per issue",
+    "issue precedes target by 1\u201324 hours",
+    "interval bounds ordered",
+    "MAE and coverage reproduced from exported rows",
+    "all 3 sites beat the 3 recorded baselines",
+    "Streamlit all 3 sites, both schedule choices, first and last days",
+    "daylight undercoverage warning visible"
+  ],
+  "result": "passed",
+  "scope": "historical replay integrity and UI; no live forecast or local impact validation"
+}

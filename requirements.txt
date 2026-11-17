@@ -4,3 +4,6 @@ numpy
 requests
 scikit-learn
 pyarrow
+
+altair
+threadpoolctl

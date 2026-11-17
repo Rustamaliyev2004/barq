@@ -1,115 +1,86 @@
-import streamlit as st, pandas as pd, numpy as np, requests, pickle, datetime, json, os
+"""Barq renewable forecasting evidence and scheduling replay."""
+import json
+from pathlib import Path
 
-st.set_page_config(page_title="barq", layout="wide")
+import altair as alt
+import pandas as pd
+import streamlit as st
 
-PLANTS = [
-    {"name": "Nur Bukhara Solar",  "type": "solar", "mw": 250, "lat": 39.77, "lon": 64.42},
-    {"name": "Sherabad Solar",     "type": "solar", "mw": 457, "lat": 37.68, "lon": 67.00},
-    {"name": "Samarkand Solar",    "type": "solar", "mw": 220, "lat": 39.65, "lon": 66.96},
-    {"name": "Nur Navoi Solar",    "type": "solar", "mw": 100, "lat": 40.10, "lon": 65.38},
-    {"name": "Zarafshan Wind",     "type": "wind",  "mw": 500, "lat": 41.60, "lon": 64.20},
-    {"name": "Bash Wind",          "type": "wind",  "mw": 500, "lat": 40.30, "lon": 64.15},
-]
-
-DE_PEAK = {"solar": 38000.0, "wind": 46000.0}
-UZ_FLEET_MW = 5600      # installed solar + wind, Uzbekistan
-UZ_SYSTEM   = 11000     # typical Uzbek peak demand, MW
-DE_SYSTEM   = 60000     # typical German peak demand, MW
-FEATURES = ["shortwave_radiation","temperature_2m","cloud_cover","wind_speed_100m","hour","month","doy"]
-
-# ---------- app ----------
-@st.cache_resource
-def get_models():
-    return pickle.load(open("data/models.pkl", "rb"))
-
-CACHE_PATH = "data/last_forecast.json"
-
-@st.cache_data(ttl=1800, show_spinner="Fetching weather forecast…")
-def forecast_all():
-    lats = ",".join(str(p["lat"]) for p in PLANTS)
-    lons = ",".join(str(p["lon"]) for p in PLANTS)
-    stale = False
-    try:
-        r = requests.get("https://api.open-meteo.com/v1/forecast", params={
-            "latitude": lats, "longitude": lons,
-            "hourly": "shortwave_radiation,temperature_2m,cloud_cover,wind_speed_100m",
-            "forecast_days": 2, "timezone": "Asia/Tashkent"}, timeout=30)
-        if r.status_code != 200:
-            raise RuntimeError(f"HTTP {r.status_code}")
-        js = r.json()
-        with open(CACHE_PATH, "w") as f:
-            json.dump({"fetched": datetime.datetime.now().isoformat(), "data": js}, f)
-    except Exception:
-        if not os.path.exists(CACHE_PATH):
-            raise
-        with open(CACHE_PATH) as f:
-            saved = json.load(f)
-        js = saved["data"]
-        stale = saved["fetched"]
-
-    if isinstance(js, dict):
-        js = [js]
-    out = []
-    for block in js:
-        d = pd.DataFrame(block["hourly"])
-        d["ts"] = pd.to_datetime(d.pop("time"))
-        d = d.set_index("ts")
-        d["hour"], d["month"], d["doy"] = d.index.hour, d.index.month, d.index.dayofyear
-        out.append(d)
-    return out, stale
-
-models = get_models()
-
-st.title("barq")
-st.caption("Output and curtailment risk forecasting for Uzbekistan's renewable fleet")
-
-try:
-    wx_all, stale = forecast_all()
-except Exception as e:
-    st.error("Weather service is temporarily unavailable. Please refresh in a minute.")
-    st.caption(f"({e})")
+ROOT = Path(__file__).resolve().parent
+DATA = ROOT / 'data/benchmark'
+st.set_page_config(page_title='Barq | Renewable forecasts', layout='wide')
+st.markdown('''<style>
+.stApp {background:#f7f8f4;color:#17362e}
+h1,h2,h3 {letter-spacing:-.025em}
+[data-testid="stMetric"] {background:#eaf0e8;padding:18px;border-radius:8px}
+</style>''', unsafe_allow_html=True)
+st.title('Barq')
+st.write('Renewable generation forecasts with uncertainty you can inspect.')
+st.caption('Research prototype · Three public solar sites · GEFCom2014 historical replay')
+if not (DATA/'metrics.json').exists():
+    st.info('The benchmark is being prepared. Run python src/benchmark_solar_v2.py to generate results.')
     st.stop()
 
-if stale:
-    st.warning(f"Live weather unavailable (API limit). Showing last forecast fetched {stale[:16]}.")
+@st.cache_data
+def load_results():
+    return pd.read_csv(DATA/'predictions.csv',parse_dates=['time']), json.loads((DATA/'metrics.json').read_text())
 
-rows, curves = [], {}
-for pl, wx in zip(PLANTS, wx_all):
-    de = models[pl["type"]].predict(wx[FEATURES])
-    mwh = np.clip(de / DE_PEAK[pl["type"]], 0, 1) * pl["mw"]
-    curves[pl["name"]] = pd.Series(mwh, index=wx.index)
-
-   # Uzbek system scaled onto the German load range the model was trained on
-    hours = wx.index.hour
-    uz_demand = 9000 + 3000*np.sin((hours-6)/24*2*np.pi)      # ~9-12 GW daily shape
-    uz_vre = curves[pl["name"]].values * (UZ_FLEET_MW / pl["mw"])
-    residual = (uz_demand - uz_vre) * (DE_SYSTEM / UZ_SYSTEM)
-    cf = wx[FEATURES].copy()
-    cf["residual_load"] = residual
-    risk = models["curtail"].predict_proba(cf)[:, 1]
-
-
-    rows.append({
-        "Plant": pl["name"], "Type": pl["type"], "Capacity MW": pl["mw"],
-        "Next 24h MWh": int(curves[pl["name"]][:24].sum()),
-        "Peak MW": round(float(mwh[:24].max()), 1),
-        "Curtailment risk 48h": f"{100*float(risk.max()):.1f}%",    })
-
-st.subheader("48-hour outlook")
-st.dataframe(pd.DataFrame(rows), use_container_width=True, hide_index=True)
-st.caption("Curtailment risk reflects national supply-demand balance. "
-           "August risk is low: summer cooling demand absorbs midday solar. "
-           "Local transmission constraints are not yet modelled — this needs operator network data.")
-st.subheader("Forecast output by plant (MW)")
-st.line_chart(pd.DataFrame(curves))
-
-st.subheader("Model accuracy, validated on German grid data")
-st.caption("Trained 2020–2023, tested on 2024 — a year the model never saw. "
-           "Germany publishes hourly actuals, so accuracy is measured, not claimed.")
-c1, c2, c3 = st.columns(3)
-c1.metric("Solar forecast error", "3.7% of peak", "79% better than baseline")
-c2.metric("Wind forecast error", "7.4% of peak", "57% better than baseline")
-c3.metric("Curtailment detection", "AUC 0.973", "catches 72% of events")
-
-st.caption("Demo build. Uzbek plant coordinates and capacities are public data. "
-           "Output is scaled from a German-trained model pending local calibration.")
+predictions, report = load_results()
+zone = st.selectbox('Solar site', sorted(predictions.zone.unique()), format_func=lambda n:f'Benchmark site {n}')
+frame = predictions[predictions.zone.eq(zone)].copy()
+metrics = next(row for row in report['sites'] if row['zone']==zone)
+a,b,c = st.columns(3)
+a.metric('Error (% capacity)', f"{100*metrics['mae']:.2f}%")
+b.metric('Error reduction',f"{100*metrics['mae_skill']:.1f}%")
+c.metric('Range coverage',f"{100*metrics['coverage_80']:.1f}%")
+st.warning(f"Experimental ranges cover {100*metrics['daylight']['coverage_80']:.1f}% of daylight observations, below the 80% target. The lower edge is a research scenario, with no guaranteed delivery level.")
+st.caption(f"Error reduction compares against the radiation curve. Range coverage targets 80%. Chronological test period starts {report['test_start']}. Average range width is {100*metrics['mean_interval_width']:.1f}% of capacity. These results describe the benchmark farms.")
+replay, evidence, local = st.tabs(['Forecast and schedule','Evidence','Uzbekistan pilot'])
+with replay:
+    st.subheader('Inspect a delivery day')
+    # Forecast block runs 01:00 through the next 00:00, in dataset time.
+    frame['delivery_day'] = (frame.time-pd.Timedelta(hours=1)).dt.date
+    dates = sorted(frame.delivery_day.unique())
+    selected = st.selectbox('Forecast day', dates, index=len(dates)//2)
+    day = frame[frame.delivery_day.eq(selected)].copy()
+    capacity = st.number_input('Illustrative plant capacity (MW)', min_value=1.,value=100.,step=10.)
+    st.caption('The benchmark reports normalized power. The capacity control scales the replay for explanation. Dataset timestamps are retained.')
+    for col in ['actual','median','lower','upper','radiation_curve']:
+        day[col] *= capacity
+    base = alt.Chart(day).encode(x=alt.X('time:T',title='Delivery time'))
+    band = base.mark_area(color='#9abfa9',opacity=.4).encode(y=alt.Y('lower:Q',title='Power (MW)'),y2='upper:Q')
+    lines = day.melt(id_vars=['time'],value_vars=['actual','median','radiation_curve'],var_name='Series',value_name='MW')
+    line = alt.Chart(lines).mark_line().encode(x='time:T',y='MW:Q',color=alt.Color('Series:N',scale=alt.Scale(range=['#172e28','#16835b','#be8c42'])),tooltip=['time:T','Series:N',alt.Tooltip('MW:Q',format='.2f')])
+    st.altair_chart((band+line).properties(height=340),width='stretch')
+    st.write('The green band is an experimental hourly uncertainty range estimated from earlier errors. Its measured coverage appears above. Coverage can change across sites and seasons.')
+    choice = st.radio('Illustrative generation schedule',['Central forecast','Lower edge of range'],horizontal=True)
+    schedule = day['median'] if choice=='Central forecast' else day['lower']
+    shortfall = (schedule-day.actual).clip(lower=0).sum()
+    excess = (day.actual-schedule).clip(lower=0).sum()
+    a,b,c = st.columns(3)
+    a.metric('Scheduled energy',f'{schedule.sum():.1f} MWh')
+    b.metric('Energy below schedule',f'{shortfall:.1f} MWh')
+    c.metric('Energy above schedule',f'{excess:.1f} MWh')
+    st.write(f"Total absolute schedule mismatch is {shortfall+excess:.1f} MWh.")
+    st.caption('One-hour intervals. A lower schedule trades reduced shortfall for more energy above schedule. The replay assumes all actual output can be delivered. Payment rules, network limits and dispatch instructions require a separate study.')
+    st.download_button('Download this forecast and actuals',day.to_csv(index=False),'barq_day.csv','text/csv')
+with evidence:
+    st.subheader('How the result was measured')
+    st.write('Training uses April 2012–June 2013. July–August 2013 selects between gradient boosting and an extra-trees ensemble. September 2013 calibrates the uncertainty range. October 2013–June 2014 supplies the evaluation period. Each farm has its own models. Test output is excluded from fitting and selection. This revision follows inspection of an earlier model on the same dates, so results are exploratory and need independent confirmation.')
+    st.caption('Forecast issue times are reconstructed from the GEFCom daily issue protocol. The CSV has no logged provider delivery timestamps. These small benchmark installations do not establish utility-scale or Uzbek performance.')
+    st.write('The model uses the supplied numerical weather forecasts and calendar information. The point model is selected by its earlier validation error. Ranges use the 10th and 90th percentiles of calibration errors within forecast-output groups. Sparse groups use the full calibration error distribution. The radiation baseline learns a monotonic power curve from training data. The seasonal baseline uses the training median for each month and hour.')
+    table=pd.DataFrame(report['sites'])[['zone','test_hours','mae','curve_mae','climatology_mae','persistence_mae','coverage_80','mean_interval_width','mean_pinball','curve_pinball']]
+    st.dataframe(table,hide_index=True,width='stretch')
+    interval=metrics['mae_skill_95pct']
+    st.write(f"Weekly block resampling gives a 95% interval of {100*interval[0]:.1f}% to {100*interval[1]:.1f}% for error reduction against the radiation curve on this farm.")
+    daylight = metrics['daylight']
+    st.write(f"During hours with positive forecast radiation, error is {100*daylight['mae']:.2f}% of capacity and interval coverage is {100*daylight['coverage_80']:.1f}%. Average daytime width is {100*daylight['mean_interval_width']:.1f}% of capacity.")
+    st.caption('This is our chronological replay, with three quantiles. It is not an official GEFCom competition score. Hourly coverage does not imply a joint daily guarantee. Local forecast skill and financial savings remain to be measured.')
+    st.download_button('Download all test predictions',predictions.to_csv(index=False),'barq_test_predictions.csv','text/csv')
+    st.markdown('[Dataset research repository](https://github.com/akylasstrat/df-forecast-comb) · [GEFCom2014 dataset description](https://github.com/greenlytics/mqe-forecast/blob/master/data/gefcom2014/README.md)')
+with local:
+    st.subheader('Test a generation schedule at one plant')
+    st.write('The intended first user is a solar plant operations team preparing expected generation and communicating uncertainty to dispatchers. A pilot would compare Barq with the forecast that team already uses.')
+    st.write('Needed inputs are time-stamped weather forecasts with their issue times, metered power, plant capacity, and outage or curtailment flags. The last two distinguish forecast error from output deliberately reduced by operations.')
+    st.write('Agree the forecast delivery time, useful error reduction and acceptable range width before evaluating new dates. Report errors by season and output level, uncertainty coverage, and schedule shortfalls. The operator retains scheduling and dispatch decisions.')
+    st.caption('No Uzbek pilot or customer agreement is currently established. The earlier German negative-price model was an electricity-price event classifier. Physical curtailment needs separate labels and network evidence.')

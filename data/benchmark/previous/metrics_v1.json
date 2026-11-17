@@ -1,0 +1,89 @@
+{
+  "train_end": "2013-06-30",
+  "calibration_end": "2013-09-30",
+  "test_start": "2013-10-01",
+  "test_end": "2014-07-01 00:00",
+  "sites": [
+    {
+      "mae": 0.029934770858785396,
+      "rmse": 0.07013692391703037,
+      "coverage_80": 0.9328449328449329,
+      "mean_interval_width": 0.23377169129319816,
+      "mean_pinball": 0.01313969308070756,
+      "zone": 1,
+      "test_hours": 6552,
+      "curve_mae": 0.059437140480883166,
+      "curve_pinball": 0.024581529668954088,
+      "climatology_mae": 0.05414992192391636,
+      "mae_skill": 0.4963625333151188,
+      "mae_skill_95pct": [
+        0.4346920375117491,
+        0.5511385358472558
+      ],
+      "interval_correction": 0.0,
+      "forecast_daylight_hours": 3684,
+      "daylight": {
+        "mae": 0.05323258145384781,
+        "rmse": 0.09353492576915927,
+        "coverage_80": 0.8911509229098805,
+        "mean_interval_width": 0.4156742213330258,
+        "mean_pinball": 0.02336435953816649
+      },
+      "daylight_curve_mae": 0.10568512832077982
+    },
+    {
+      "mae": 0.037115885699798075,
+      "rmse": 0.08460605029834904,
+      "coverage_80": 0.9291819291819292,
+      "mean_interval_width": 0.2525202013709331,
+      "mean_pinball": 0.015377590664938963,
+      "zone": 2,
+      "test_hours": 6552,
+      "curve_mae": 0.06257350849969312,
+      "curve_pinball": 0.024980350446136335,
+      "climatology_mae": 0.06164604852266484,
+      "mae_skill": 0.40684346155881446,
+      "mae_skill_95pct": [
+        0.3543164666068267,
+        0.4592394509119136
+      ],
+      "interval_correction": 0.0,
+      "forecast_daylight_hours": 3690,
+      "daylight": {
+        "mae": 0.06589969206721849,
+        "rmse": 0.11273925563989261,
+        "coverage_80": 0.8802168021680217,
+        "mean_interval_width": 0.44795436452404963,
+        "mean_pinball": 0.027289472975806615
+      },
+      "daylight_curve_mae": 0.11109737353843947
+    },
+    {
+      "mae": 0.03620090726667347,
+      "rmse": 0.07836838354121553,
+      "coverage_80": 0.9453601953601953,
+      "mean_interval_width": 0.2652787855595137,
+      "mean_pinball": 0.015221136609826274,
+      "zone": 3,
+      "test_hours": 6552,
+      "curve_mae": 0.05558814649803845,
+      "curve_pinball": 0.022018952095851547,
+      "climatology_mae": 0.06279683112026863,
+      "mae_skill": 0.3487657073086453,
+      "mae_skill_95pct": [
+        0.3031005026622303,
+        0.39132191838638264
+      ],
+      "interval_correction": 0.0,
+      "forecast_daylight_hours": 3690,
+      "daylight": {
+        "mae": 0.06427056591802537,
+        "rmse": 0.10442742872185573,
+        "coverage_80": 0.9157181571815718,
+        "mean_interval_width": 0.4709334671244231,
+        "mean_pinball": 0.027021053696421802
+      },
+      "daylight_curve_mae": 0.09867986995004432
+    }
+  ]
+}
